@@ -16,6 +16,9 @@ sudo apt install python-pip
 sudo pip install PyLaTeX
 ```
 
+# Configuration
+To permanently set your own name you can edit the file `myConfig.json` (first copy `demoConfig.json` to `myConfig.json`, then edit).
+
 # Usage
 First, you need to export your data via the Kimai export manager.
 When you downloaded the `export.csv` file can simply run:
@@ -23,6 +26,11 @@ When you downloaded the `export.csv` file can simply run:
 python kimai_csv2pdf.py -i ~/Downloads/export.csv
 ```
 This should compile the file `zeitaufzeichnung.pdf` in your current working directory
+
+Further comanndline option are displayed when running
+```
+python kimai_csv2pdf.py -h
+```
 
 # Troubleshooting
 It might happen, that the resulting document has some formatting issues (for example the table header). In such occasions manually running
