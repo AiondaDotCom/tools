@@ -29,6 +29,7 @@ parser.add_argument("-i", "--input",    dest='input',    help="Path to input fil
 parser.add_argument("-o", "--output",   dest='output',   help="Path to output file")
 parser.add_argument("-e", "--employee", dest='employee', help="Name of employee")
 parser.add_argument("-m", "--month",    dest='month',    help="Use MONTH instead of current month")
+parser.add_argument("-f", "--format",   dest='format',   help="Set time format ('normal', 'decimal', 'mixed')" )
 
 args = parser.parse_args()
 
@@ -113,7 +114,7 @@ def generatePDF(obj):
     doc.generate_pdf(obj['outputFilename'], clean_tex=False)
 
 
-def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename):
+def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonBisDarstellung):
     """
     Function that prepares the csv data
 
@@ -218,9 +219,24 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename):
                 [endH, endM]     = endHM.split(':')
                 endDecRounded    = hlp.roundToNearest(hlp.timedeltaToDecimal(hlp.hoursMinutesToTimedelta(endH, endM)), .25)
 
-                #vonBisStr = "{:.2f} ({}) - {:.2f} ({})".format(startDecRounded, startHM, endDecRounded, endHM)
-                vonBisStr = "{:05.2f} - {:05.2f}".format(startDecRounded, endDecRounded)
-                #vonBisStr = "{} - {}".format(hlp.decimalToTimedelta(startDecRounded), endDecRounded)
+                # Rückumwandlung der gerundeten Zeit in Stunden, Minuten
+                start = hlp.decimalToTimedelta(startDecRounded)
+                [starth, startm] = hlp.timedeltaToHoursMinutes(start)
+
+                end = hlp.decimalToTimedelta(endDecRounded)
+                [endh, endm] = hlp.timedeltaToHoursMinutes(end)
+
+                if vonBisDarstellung == 'decimal':
+                    # Dezimal
+                    vonBisStr = "{:05.2f} - {:05.2f}".format(startDecRounded, endDecRounded)
+
+                elif vonBisDarstellung == 'mixed':
+                    # mixed
+                    vonBisStr = "{:02d}:{:02d} ({:05.2f}) - {:02d}:{:02d} ({:05.2f})".format(starth, startm, startDecRounded, endh, endm, endDecRounded)
+
+                else:
+                    # Normal (HH:MM)
+                    vonBisStr = "{:02d}:{:02d} - {:02d}:{:02d}".format(starth, startm, endh, endm)
 
                 diffStartEnde = zeitAufzeichnung[date]['endObj'] - zeitAufzeichnung[date]['startObj']
 
@@ -288,10 +304,12 @@ if __name__ == '__main__':
     myYear = now.year
     myDay = now.day
 
-    employeeName    = args.employee  if args.employee  else config['defaultName']
-    csvFilename     = args.input     if args.input     else config['defaultInput']
-    outputFilename  = args.output    if args.output    else config['defaultOutput']
-    myMonth         = args.month     if args.month     else now.month
+    employeeName       = args.employee            if args.employee             else config['defaultName']
+    csvFilename        = args.input               if args.input                else config['defaultInput']
+    outputFilename     = args.output              if args.output               else config['defaultOutput']
+    myMonth            = args.month               if args.month                else now.month
+    vonBisDarstellung  = args.format              if args.format               else config['vonBisDarstellung']
+
 
     print """
 Generating PDF:
@@ -309,9 +327,10 @@ Generating PDF:
         )
 
     myObj = generateZeitaufzeichnungsObj(
-        csvFilename    = csvFilename,
-        employeeName   = employeeName,
-        outputFilename = outputFilename
+        csvFilename       = csvFilename,
+        employeeName      = employeeName,
+        outputFilename    = outputFilename,
+        vonBisDarstellung = vonBisDarstellung
         )
 
     generatePDF(myObj)

@@ -1,5 +1,6 @@
 {
   "defaultName": "Max Mustermann",
   "defaultInput": "export.csv",
-  "defaultOutput": "zeitaufzeichnung"
+  "defaultOutput": "zeitaufzeichnung",
+  "vonBisDarstellung": "normal"
 }
