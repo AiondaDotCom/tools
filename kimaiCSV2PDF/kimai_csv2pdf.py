@@ -75,7 +75,7 @@ def generatePDF(obj):
             data_table.add_hline()
             data_table.add_row([
                 bold("Datum"),
-                bold("von-bis"),
+                bold("von - bis"),
                 bold("Pause"),
                 bold("gesamte AZ"),
                 bold(NoEscape("davon \\\"Uberstunden"))
@@ -213,11 +213,13 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
 
                 startHM          = zeitAufzeichnung[date]['startHM']
                 [startH, startM] = startHM.split(':')
-                startDecRounded  = hlp.roundToNearest(hlp.timedeltaToDecimal(hlp.hoursMinutesToTimedelta(startH, startM)), .25)
+                startDec         = hlp.timedeltaToDecimal(hlp.hoursMinutesToTimedelta(startH, startM))
+                startDecRounded  = hlp.roundToNearest(startDec, .25)
 
                 endHM            = zeitAufzeichnung[date]['endeHM']
                 [endH, endM]     = endHM.split(':')
-                endDecRounded    = hlp.roundToNearest(hlp.timedeltaToDecimal(hlp.hoursMinutesToTimedelta(endH, endM)), .25)
+                endDec           = hlp.timedeltaToDecimal(hlp.hoursMinutesToTimedelta(endH, endM))
+                endDecRounded    = hlp.roundToNearest(endDec, .25)
 
                 # Rückumwandlung der gerundeten Zeit in Stunden, Minuten
                 start = hlp.decimalToTimedelta(startDecRounded)
@@ -225,6 +227,45 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
 
                 end = hlp.decimalToTimedelta(endDecRounded)
                 [endh, endm] = hlp.timedeltaToHoursMinutes(end)
+
+                diffStartEnde = zeitAufzeichnung[date]['endObj'] - zeitAufzeichnung[date]['startObj']
+
+                arbeitszeitKomplettRounded += hlp.roundToNearest(zeitAufzeichnung[date]['dauerDec'], 0.25)
+                gesamteAZ = hlp.roundToNearest(zeitAufzeichnung[date]['dauerDec'], 0.25)
+                gesamteAZStr = "{:.2f}".format(gesamteAZ)
+                davonUeberstunden = ""
+
+                # Pause: (ende-start) - realeArbeitszeit
+                #pause = hlp.roundToNearest(
+                #    hlp.timedeltaToDecimal(diffStartEnde -   hlp.decimalToTimedelta(zeitAufzeichnung[date]['dauerDec'])), .25)
+                if endDecRounded >= startDecRounded:
+                    pause = endDecRounded - startDecRounded - gesamteAZ
+
+                    if pause < 0:
+                        # Da alle Zeiten gerundet werden, kann es vorkommen, dass negative Pausen berechnet werden
+                        # Um dies zu umgehen, werden die Start und Endzeiten angepasst
+                        # Von der Startzeit wird die Hälfte der Pause abgezogen
+                        # Von der Endzeit wird die Hälfte der Pause aufaddiert
+                        print "Pause negativ (durch rundung) => korrigiere start & end-zeit"
+                        print "Vorher: {}-{} ({}-{})".format(startDec, endDec, startDecRounded, endDecRounded)
+                        startDec = startDec - abs(pause/2.)
+                        endDec   = endDec   + abs(pause/2.)
+                        # Runde Start und Endzeit neu
+                        startDecRounded = hlp.roundToNearest(startDec, .25)
+                        endDecRounded   = hlp.roundToNearest(endDec, .25)
+
+                        print "Nachher: {}-{} ({}-{})".format(startDec, endDec, startDecRounded, endDecRounded)
+
+                        # Berechne Pausendauer neu
+                        pause = endDecRounded - startDecRounded - gesamteAZ
+
+                    # Formatiere die Pausendauer auf zwei Nachkommastellen
+                    pauseStr = "{:.2f}".format(pause)
+                else:
+                    # Gebe Warnung aus, wenn Startzeit nach Endzeit liegt
+                    print "{}>{}".format(startDecRounded, endDecRounded)
+                    raise ValueError('Endzeit kleiner als Startzeit (womöglich tagesübergreifend)')
+
 
                 if vonBisDarstellung == 'decimal':
                     # Dezimal
@@ -238,21 +279,6 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
                     # Normal (HH:MM)
                     vonBisStr = "{:02d}:{:02d} - {:02d}:{:02d}".format(starth, startm, endh, endm)
 
-                diffStartEnde = zeitAufzeichnung[date]['endObj'] - zeitAufzeichnung[date]['startObj']
-
-                arbeitszeitKomplettRounded += hlp.roundToNearest(zeitAufzeichnung[date]['dauerDec'], 0.25)
-                gesamteAZ = hlp.roundToNearest(zeitAufzeichnung[date]['dauerDec'], 0.25)
-                gesamteAZStr = "{:.2f}".format(gesamteAZ)
-                davonUeberstunden = ""
-
-                # Pause: (ende-start) - realeArbeitszeit
-                #pause = hlp.roundToNearest(
-                #    hlp.timedeltaToDecimal(diffStartEnde -   hlp.decimalToTimedelta(zeitAufzeichnung[date]['dauerDec'])), .25)
-                if endDecRounded > startDecRounded:
-                    pause = endDecRounded - startDecRounded - gesamteAZ
-                    pauseStr = "{:.2f}".format(pause)
-                else:
-                    raise ValueError('Endzeit kleiner als Startzeit (womöglich tagesübergreifend)')
 
                 row = [date, vonBisStr, pauseStr, gesamteAZStr, davonUeberstunden]
             else:
