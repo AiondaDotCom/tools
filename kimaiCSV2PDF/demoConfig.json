@@ -2,5 +2,7 @@
   "defaultName": "Max Mustermann",
   "defaultInput": "export.csv",
   "defaultOutput": "zeitaufzeichnung",
-  "vonBisDarstellung": "normal"
+  "vonBisDarstellung": "normal",
+  "sign": false,
+  "signature": "demoSignature.jpg"
 }

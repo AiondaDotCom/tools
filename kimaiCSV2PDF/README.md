@@ -32,6 +32,17 @@ Further comanndline option are displayed when running
 python kimai_csv2pdf.py -h
 ```
 
+## Insert scanned signature
+To test this feature run:
+```
+python kimai_csv2pdf.py -i ~/Downloads/export.csv -s demo
+```
+
+To use your own signature:
+```
+python kimai_csv2pdf.py -i ~/Downloads/export.csv -s <path>/<to>/<scanned>/<signature>.jpg
+```
+
 # Troubleshooting
 It might happen, that the resulting document has some formatting issues (for example the table header). In such occasions manually running
 ```sh

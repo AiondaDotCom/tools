@@ -30,6 +30,8 @@ parser.add_argument("-o", "--output",   dest='output',   help="Path to output fi
 parser.add_argument("-e", "--employee", dest='employee', help="Name of employee")
 parser.add_argument("-m", "--month",    dest='month',    help="Use MONTH instead of current month")
 parser.add_argument("-f", "--format",   dest='format',   help="Set time format ('normal', 'decimal', 'mixed')" )
+parser.add_argument("-s", "--sign",     dest='signature',help="Path to image of scanned signature")
+
 
 args = parser.parse_args()
 
@@ -50,6 +52,7 @@ def generatePDF(obj):
     # Include Packages
     doc.preamble.append(Command('usepackage', 'url'))
     doc.preamble.append(Command('usepackage', 'fancyhdr'))
+    doc.preamble.append(Command('usepackage', 'graphicx'))
 
     # Set Pagestyle (fancy is used for page header and footer)
     doc.preamble.append(Command('pagestyle', 'fancy'))
@@ -106,7 +109,10 @@ def generatePDF(obj):
 
     # place for signatures
     with doc.create(LongTable("ll")) as signTable:
-        signTable.add_row(["", NoEscape("")])
+        if obj['signatureFile']:
+            signTable.add_row([Command('includegraphics', signatureFile, 'width=4cm'), Command('vspace', NoEscape('-.1cm'))])
+        else:
+            signTable.add_row(["", NoEscape("")])
         signTable.add_hline()
         signTable.add_row([NoEscape("Unterschrift Arbeitnehmer"), NoEscape("\hspace{4cm}Unterschrift Arbeitgeber")])
 
@@ -114,7 +120,7 @@ def generatePDF(obj):
     doc.generate_pdf(obj['outputFilename'], clean_tex=False)
 
 
-def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonBisDarstellung):
+def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonBisDarstellung, signatureFile):
     """
     Function that prepares the csv data
 
@@ -298,7 +304,8 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
         'arbeitszeitKomplett':        arbeitszeitKomplett,
         'arbeitszeitKomplettRounded': arbeitszeitKomplettRounded,
         'zeitAufzeichnungsTable':     zeitAufzeichnungsTable,
-        'outputFilename':             outputFilename
+        'outputFilename':             outputFilename,
+        'signatureFile':              signatureFile
     }
 
     return zeitAufzeichnungsObj
@@ -336,6 +343,13 @@ if __name__ == '__main__':
     myMonth            = args.month               if args.month                else now.month
     vonBisDarstellung  = args.format              if args.format               else config['vonBisDarstellung']
 
+    if config['sign'] or args.signature:
+        signatureFile      = args.signature           if args.signature         else config['signature']
+    else:
+        signatureFile = False
+
+    if signatureFile == 'demo':
+        signatureFile = os.path.join(path, 'demoSignature.jpg')
 
     print """
 Generating PDF:
@@ -344,19 +358,22 @@ Generating PDF:
     Jahr:  {jahr}
     Monat: {monat}
     Name:  {name}
+    Sign:  {signature}
     """.format(
         csv            = csvFilename,
         jahr           = myYear,
         monat          = myMonth,
         name           = employeeName,
-        outputFilename = outputFilename
+        outputFilename = outputFilename,
+        signature      = signatureFile
         )
 
     myObj = generateZeitaufzeichnungsObj(
         csvFilename       = csvFilename,
         employeeName      = employeeName,
         outputFilename    = outputFilename,
-        vonBisDarstellung = vonBisDarstellung
+        vonBisDarstellung = vonBisDarstellung,
+        signatureFile     = signatureFile
         )
 
     generatePDF(myObj)
