@@ -56,7 +56,7 @@ def generatePDF(obj):
 
     # Header and Footer
     doc.preamble.append(Command('cfoot', NoEscape('Aionda Zeiterfassung - \\url{https://github.com/AiondaDotCom/tools}')))
-    doc.preamble.append(Command('chead', (Command('Large', bold('Abeitnehmer: Check-In-Time')))))
+    doc.preamble.append(Command('chead', (Command('Large', bold('Arbeitnehmer: Check-In-Time')))))
 
     #with doc.create(Section(NoEscape('Arbeitnehmer:\\\\Check-In-Time'), numbering=False)):
 
