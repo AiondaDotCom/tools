@@ -11,6 +11,8 @@
 
 import os
 import datetime
+import holidays
+
 
 def roundToNearest(value, nearest):
     """
@@ -59,3 +61,16 @@ def checkConfigFile(toplevelPath, configFilename):
     else:
         # Config File not found
         return False
+
+
+def isHoliday(myYear, myMonth, myDay):
+    bw_holidays = holidays.DE(prov='BW')
+    bw_holidays.append({"2017-10-31": "Reformationstag"})
+
+    return  datetime.date(myYear, myMonth, myDay) in bw_holidays
+
+def isWeekend(myYear, myMonth, myDay):
+    datum = "{:02d}.{:02d}.{}".format(myDay, myMonth, myYear)
+    dateObj = datetime.datetime.strptime(datum, '%d.%m.%Y')
+    weekday = dateObj.weekday()
+    return weekday >= 5

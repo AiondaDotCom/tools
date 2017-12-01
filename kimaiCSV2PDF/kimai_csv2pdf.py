@@ -29,11 +29,14 @@ parser.add_argument("-i", "--input",    dest='input',    help="Path to input fil
 parser.add_argument("-o", "--output",   dest='output',   help="Path to output file")
 parser.add_argument("-e", "--employee", dest='employee', help="Name of employee")
 parser.add_argument("-m", "--month",    dest='month',    help="Use MONTH instead of current month")
+parser.add_argument("-y", "--year",     dest='year',     help="Use YEAR instead of current year")
 parser.add_argument("-f", "--format",   dest='format',   help="Set time format ('normal', 'decimal', 'mixed')" )
 parser.add_argument("-s", "--sign",     dest='signature',help="Path to image of scanned signature")
-
+parser.add_argument("-w", "--weekend",  action='store_true', help="Mark weekends with WE")
 
 args = parser.parse_args()
+
+abbrv = ['WF', 'K', 'WA', 'U']
 
 def generatePDF(obj):
     """
@@ -102,7 +105,7 @@ def generatePDF(obj):
     # Generate table with remarks
     with doc.create(LongTable("lllll")) as signTable:
         signTable.add_row(['Bemerkungen:', 'Krankheitstage:',      'K',  'Schlechtwetter:', 'WA'])
-        signTable.add_row(['',             'Wochenende/Feiertag:', 'WA', 'Urlaubstage:',    'U'])
+        signTable.add_row(['',             'Wochenende/Feiertag:', 'WF', 'Urlaubstage:',    'U'])
 
     # Insert vertical space
     doc.append(Command('vspace', '1cm'))
@@ -209,8 +212,8 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
         # https://stackoverflow.com/questions/42950/get-last-day-of-the-month-in-python#43663
         numDays = calendar.monthrange(myYear, myMonth)[1]
         arbeitszeitKomplettRounded = 0
-        #for i in range(1, numDays + 1):
-        for i in range(1, 31+1):
+        for i in range(1, numDays + 1):
+        #for i in range(1, 31+1):
             #date = "{tag:02d}.{monat:02d}.{jahr}".format(tag=i, monat = now.month, jahr=now.year)
             date = "{tag:02d}.{monat:02d}.".format(tag=i, monat = myMonth)
 
@@ -260,6 +263,12 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
                         startDecRounded = hlp.roundToNearest(startDec, .25)
                         endDecRounded   = hlp.roundToNearest(endDec, .25)
 
+                        start = hlp.decimalToTimedelta(startDecRounded)
+                        [starth, startm] = hlp.timedeltaToHoursMinutes(start)
+
+                        end = hlp.decimalToTimedelta(endDecRounded)
+                        [endh, endm] = hlp.timedeltaToHoursMinutes(end)
+
                         print "Nachher: {}-{} ({}-{})".format(startDec, endDec, startDecRounded, endDecRounded)
 
                         # Berechne Pausendauer neu
@@ -287,12 +296,14 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
 
 
                 row = [date, vonBisStr, pauseStr, gesamteAZStr, davonUeberstunden]
+            elif args.weekend and (hlp.isHoliday(myYear, myMonth, i) or hlp.isWeekend(myYear, myMonth, i)):
+                print "HOLIDAY/WE"
+                row = [date, '(WF)', '(WF)', '(WF)', '']
             else:
-                row = [date, '', '', '', '']
+                row = [date, NoEscape('---'), NoEscape('---'), NoEscape('---'), '']
 
             zeitAufzeichnungsTable.append(row)
             print row
-
 
     print "AZ komplett (exakt): {} = {}".format(arbeitszeitKomplett,        hlp.decimalToTimedelta(arbeitszeitKomplett))
     print "AZ komplett (~0.25): {} = {}".format(arbeitszeitKomplettRounded, hlp.decimalToTimedelta(arbeitszeitKomplettRounded))
@@ -340,7 +351,8 @@ if __name__ == '__main__':
     employeeName       = args.employee            if args.employee             else config['defaultName']
     csvFilename        = args.input               if args.input                else config['defaultInput']
     outputFilename     = args.output              if args.output               else config['defaultOutput']
-    myMonth            = args.month               if args.month                else now.month
+    myMonth            = int(args.month)          if args.month                else now.month
+    myYear             = int(args.year)           if args.year                 else now.year
     vonBisDarstellung  = args.format              if args.format               else config['vonBisDarstellung']
 
     if config['sign'] or args.signature:
@@ -348,7 +360,7 @@ if __name__ == '__main__':
     else:
         signatureFile = False
 
-    if signatureFile == 'demo':
+    if signatureFile.upper() == 'DEMO':
         signatureFile = os.path.join(path, 'demoSignature.jpg')
 
     print """
@@ -376,4 +388,17 @@ Generating PDF:
         signatureFile     = signatureFile
         )
 
-    generatePDF(myObj)
+    if signatureFile != False:
+        ## Frage ob unterschrieben werden soll
+        print """
+!!! Please check the generated results and confirm that you want to sign your document !!!
+!!! Signature File: {}
+""".format(signatureFile)
+        answer = raw_input('(y/n): ')
+        if answer == 'y':
+            print 'Generating PDF...'
+            generatePDF(myObj)
+
+        else:
+            print 'Aborting... Goodbye!'
+            sys.exit()

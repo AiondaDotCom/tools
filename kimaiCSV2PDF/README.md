@@ -16,6 +16,11 @@ sudo apt install python-pip
 sudo pip install PyLaTeX
 ```
 
+# Installation
+```
+sudo ln -s <path>/<to>/<this>/<repo>/tools/kimaiCSV2PDF/kimai_csv2pdf.py /usr/local/bin
+```
+
 # Configuration
 To permanently set your own name you can edit the file `myConfig.json` (first copy `demoConfig.json` to `myConfig.json`, then edit).
 
