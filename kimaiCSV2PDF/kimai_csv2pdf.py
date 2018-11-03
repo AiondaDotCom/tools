@@ -294,8 +294,11 @@ def generateZeitaufzeichnungsObj(csvFilename, employeeName, outputFilename, vonB
                     # Normal (HH:MM)
                     vonBisStr = "{:02d}:{:02d} - {:02d}:{:02d}".format(starth, startm, endh, endm)
 
-
-                row = [date, vonBisStr, pauseStr, gesamteAZStr, davonUeberstunden]
+                if gesamteAZ == 0:
+                    print "Ignoriere Arbeitsdauer von 0.0h"
+                    row = [date, NoEscape('---'), NoEscape('---'), NoEscape('---'), '']
+                else:
+                    row = [date, vonBisStr, pauseStr, gesamteAZStr, davonUeberstunden]
             elif args.weekend and (hlp.isHoliday(myYear, myMonth, i) or hlp.isWeekend(myYear, myMonth, i)):
                 print "HOLIDAY/WE"
                 row = [date, '(WF)', '(WF)', '(WF)', '']
